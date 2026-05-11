@@ -80,10 +80,10 @@ The tests focus on matching behavior and directory walking.
 
 On this repository, using `hyperfine --warmup 3 --runs 20`:
 
-| Command | Mean time |
-| --- | ---: |
-| `find . -type f -not -path './.git/*' | sed 's#^\./##' | fzf --filter main` | 13.1 ms |
-| `./target/release/rzf --filter main` | 6.8 ms |
+- `find . -type f -not -path './.git/*' | sed 's#^\./##' | fzf --filter main`
+  - mean time: 13.1 ms
+- `./target/release/rzf --filter main`
+  - mean time: 6.8 ms
 
 In this end-to-end benchmark, `rzf --filter main` ran about 1.9x faster than the
 equivalent `find`/`sed`/`fzf` pipeline.
