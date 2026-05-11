@@ -41,6 +41,12 @@ cargo run --manifest-path /path/to/rzf/Cargo.toml
 
 When a selection is confirmed, the selected path is printed to stdout.
 
+For non-interactive filtering:
+
+```bash
+cargo run --release -- --filter main
+```
+
 ## Controls
 
 | Key | Action |
@@ -69,6 +75,21 @@ cargo test
 ```
 
 The tests focus on matching behavior and directory walking.
+
+## Benchmark
+
+On this repository, using `hyperfine --warmup 3 --runs 20`:
+
+| Command | Mean time |
+| --- | ---: |
+| `find . -type f -not -path './.git/*' | sed 's#^\./##' | fzf --filter main` | 13.1 ms |
+| `./target/release/rzf --filter main` | 6.8 ms |
+
+In this end-to-end benchmark, `rzf --filter main` ran about 1.9x faster than the
+equivalent `find`/`sed`/`fzf` pipeline.
+
+This includes file discovery and process startup, so it is not a pure fuzzy
+matching benchmark.
 
 ## Learning Goals
 
