@@ -7,6 +7,8 @@ use crossterm::{
     *,
 };
 
+use crate::fuzzy;
+
 pub struct State {
     candidates: Vec<String>,
     query: String,
@@ -59,7 +61,7 @@ impl State {
         self.results = self
             .candidates
             .iter()
-            .filter_map(|c| crate::algo::score(&self.query, c).map(|s| (s, c.clone())))
+            .filter_map(|c| fuzzy::score(&self.query, c).map(|s| (s, c.clone())))
             .collect();
         self.results.sort_by_key(|b| std::cmp::Reverse(b.0));
     }
@@ -132,12 +134,11 @@ pub fn run(state: &mut State) -> io::Result<Option<String>> {
     Ok(selected_path)
 }
 
-
 struct Layout {
     width: u16,
     prompt_row: u16,
     size_row: u16,
-    max_result: usize
+    max_result: usize,
 }
 
 impl Layout {
@@ -148,7 +149,12 @@ impl Layout {
         let prompt_row = height.saturating_sub(1);
         let max_result = max_row as usize;
 
-        Ok(Self { width, prompt_row, size_row, max_result })
+        Ok(Self {
+            width,
+            prompt_row,
+            size_row,
+            max_result,
+        })
     }
 }
 
@@ -169,8 +175,8 @@ fn render(state: &mut State, layout: &Layout, out: &mut Stdout) -> io::Result<()
         let mut bg = SetBackgroundColor(style::Color::Reset);
 
         if result_i == state.selected {
-           prefix = "▶ ";
-           bg =  SetBackgroundColor(style::Color::DarkGrey);
+            prefix = "▶ ";
+            bg = SetBackgroundColor(style::Color::DarkGrey);
         }
 
         queue!(
