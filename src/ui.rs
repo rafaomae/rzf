@@ -12,7 +12,7 @@ use crate::fuzzy;
 pub struct State {
     candidates: Vec<String>,
     query: String,
-    max_quantity: usize,
+    candidates_count: usize,
     results: Vec<(i32, String)>,
     selected: usize,
     scroll_offset: usize,
@@ -20,10 +20,10 @@ pub struct State {
 
 impl State {
     pub fn new(candidates: Vec<String>) -> Self {
-        let max_quantity = candidates.len();
+        let candidates_count = candidates.len();
         let mut s = Self {
             candidates,
-            max_quantity,
+            candidates_count,
             query: String::new(),
             results: Vec::new(),
             selected: 0,
@@ -110,11 +110,11 @@ pub fn run(state: &mut State) -> io::Result<Option<String>> {
                 }
                 (KeyCode::Up, _) | (KeyCode::Char('p'), KeyModifiers::CONTROL) => {
                     state.move_up();
-                    state.keep_selected_visible(layout.max_result);
+                    state.keep_selected_visible(layout.visible_count);
                 }
                 (KeyCode::Down, _) | (KeyCode::Char('n'), KeyModifiers::CONTROL) => {
                     state.move_down();
-                    state.keep_selected_visible(layout.max_result);
+                    state.keep_selected_visible(layout.visible_count);
                 }
                 (KeyCode::Char(c), _) => {
                     state.push_char(c);
@@ -138,27 +138,26 @@ struct Layout {
     width: u16,
     prompt_row: u16,
     size_row: u16,
-    max_result: usize,
+    visible_count: usize,
 }
 
 impl Layout {
     pub fn new() -> io::Result<Self> {
         let (width, height) = terminal::size()?;
         let size_row = height.saturating_sub(2);
-        let max_row = size_row.saturating_sub(1);
+        let visible_count = size_row.saturating_sub(1) as usize;
         let prompt_row = height.saturating_sub(1);
-        let max_result = max_row as usize;
 
         Ok(Self {
             width,
             prompt_row,
             size_row,
-            max_result,
+            visible_count,
         })
     }
 }
 
-fn render(state: &mut State, layout: &Layout, out: &mut Stdout) -> io::Result<()> {
+fn render(state: &State, layout: &Layout, out: &mut Stdout) -> io::Result<()> {
     let remaining = state.results.len();
     queue!(out, terminal::Clear(terminal::ClearType::All))?;
 
@@ -167,10 +166,10 @@ fn render(state: &mut State, layout: &Layout, out: &mut Stdout) -> io::Result<()
         .iter()
         .enumerate()
         .skip(state.scroll_offset)
-        .take(layout.max_result)
+        .take(layout.visible_count)
         .enumerate()
     {
-        let row: u16 = layout.max_result as u16 - screen_i as u16;
+        let row: u16 = layout.visible_count as u16 - screen_i as u16;
         let mut prefix = "  ";
         let mut bg = SetBackgroundColor(style::Color::Reset);
 
@@ -190,7 +189,7 @@ fn render(state: &mut State, layout: &Layout, out: &mut Stdout) -> io::Result<()
     }
 
     let cursor_x = 2 + state.query.len() as u16;
-    let size_format = format!("  {}/{} ", remaining, state.max_quantity);
+    let size_format = format!("  {}/{} ", remaining, state.candidates_count);
     let mut line_format = String::new();
     for _ in 1..layout.width.saturating_sub(size_format.len() as u16) {
         line_format.push('-');
